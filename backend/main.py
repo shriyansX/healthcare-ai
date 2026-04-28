@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from routers import hospitals, extract, rag
+from routers import hospitals, extract, rag, upload
 
 app = FastAPI(
     title="Healthcare AI API",
@@ -19,6 +19,7 @@ app.add_middleware(
 app.include_router(hospitals.router, prefix="/api/hospitals", tags=["Hospitals"])
 app.include_router(extract.router, prefix="/api/extract", tags=["AI Extraction"])
 app.include_router(rag.router, prefix="/api/rag", tags=["RAG"])
+app.include_router(upload.router, prefix="/api/upload", tags=["Upload"])
 
 
 @app.get("/")
