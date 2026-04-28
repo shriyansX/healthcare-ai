@@ -1,193 +1,194 @@
 import Head from 'next/head';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
-import StatCard from '../components/StatCard';
-import AlertPanel from '../components/AlertPanel';
-import HospitalCard from '../components/HospitalCard';
 import { api } from '../lib/api';
 
-const FALLBACK_HOSPITALS = [
-  { id:1, name:'AIIMS Delhi', location:'Delhi', doctors:320, nurses:850, beds:1000, ambulances:12, population_served:500000, equipment:['MRI','CT scan','ICU','Ventilator','NICU','Blood Bank','Lab'], status:'Good', score:92 },
-  { id:2, name:'Rural Clinic Vidarbha', location:'Vidarbha, MH', doctors:3, nurses:5, beds:10, ambulances:0, population_served:8000, equipment:['X-ray'], status:'Medical Desert', score:8 },
-  { id:3, name:'City Hospital Pune', location:'Pune, MH', doctors:45, nurses:120, beds:200, ambulances:5, population_served:75000, equipment:['MRI','CT scan','ICU','X-ray','Lab','Pharmacy'], status:'Good', score:71 },
-  { id:4, name:'PHC Barmer', location:'Barmer, RJ', doctors:2, nurses:4, beds:6, ambulances:1, population_served:12000, equipment:['X-ray'], status:'Medical Desert', score:5 },
-  { id:5, name:'Apollo Chennai', location:'Chennai, TN', doctors:210, nurses:600, beds:800, ambulances:15, population_served:300000, equipment:['MRI','CT scan','ICU','Ventilator','NICU','Blood Bank','Lab','Dialysis'], status:'Good', score:95 },
+const FALLBACK = [
+  { id:1, name:'AIIMS Delhi', location:'Delhi', doctors:320, beds:1000, ambulances:12, population_served:500000, equipment:['MRI','CT scan','ICU','Ventilator','NICU','Blood Bank'], status:'Good', score:92 },
+  { id:2, name:'Rural Clinic Vidarbha', location:'Vidarbha, MH', doctors:3, beds:10, ambulances:0, population_served:8000, equipment:['X-ray'], status:'Medical Desert', score:8 },
+  { id:3, name:'City Hospital Pune', location:'Pune, MH', doctors:45, beds:200, ambulances:5, population_served:75000, equipment:['MRI','CT scan','ICU'], status:'Good', score:71 },
+  { id:4, name:'PHC Barmer', location:'Barmer, RJ', doctors:2, beds:6, ambulances:1, population_served:12000, equipment:['X-ray'], status:'Medical Desert', score:5 },
+  { id:5, name:'Apollo Chennai', location:'Chennai, TN', doctors:210, beds:800, ambulances:15, population_served:300000, equipment:['MRI','ICU','NICU','Dialysis'], status:'Good', score:95 },
 ];
 
 const FALLBACK_STATS = { total_hospitals: 247, medical_deserts: 38, critical_zones: 61, good: 112, medium: 36 };
 
-const PIPELINE = [
-  { label: 'Data Ingestion',  status: 'Live',    color: '#22c55e', icon: '📥' },
-  { label: 'AI Extraction',   status: 'Active',  color: '#22c55e', icon: '🤖' },
-  { label: 'RAG Indexing',    status: 'Ready',   color: '#22c55e', icon: '🔍' },
-  { label: 'Detection Logic', status: 'Running', color: '#22c55e', icon: '🚦' },
-  { label: 'Map Rendering',   status: 'Online',  color: '#22c55e', icon: '🗺️' },
-];
-
-const QUICK_LINKS = [
-  { href: '/upload',  label: 'Upload Docs',    icon: '📁', desc: 'Add PDFs, CSVs to RAG store', color: '#3b82f6' },
-  { href: '/extract', label: 'AI Extract',     icon: '🤖', desc: 'Parse hospital descriptions',  color: '#8b5cf6' },
-  { href: '/rag',     label: 'Query RAG',      icon: '🔍', desc: 'Ask the knowledge base',       color: '#14b8a6' },
-  { href: '/map',     label: 'View Map',       icon: '🗺️', desc: 'Interactive coverage map',     color: '#f59e0b' },
-];
+const STATUS_DOT = { Good: 'var(--green)', Medium: 'var(--amber)', Critical: 'var(--red)', 'Medical Desert': 'var(--red-deep)' };
+const STATUS_COLOR = { Good: '#4ade80', Medium: '#fbbf24', Critical: '#f87171', 'Medical Desert': '#f87171' };
 
 export default function Dashboard() {
-  const [hospitals, setHospitals] = useState(FALLBACK_HOSPITALS);
+  const [hospitals, setHospitals] = useState(FALLBACK);
   const [stats, setStats]         = useState(FALLBACK_STATS);
-  const [loading, setLoading]     = useState(false);
-  const [apiConnected, setApiConnected] = useState(null);
+  const [live, setLive]           = useState(null);
 
   useEffect(() => {
-    setLoading(true);
     Promise.all([api.getHospitals(), api.getStats()])
-      .then(([h, s]) => {
-        setHospitals(h);
-        setStats(s);
-        setApiConnected(true);
-      })
-      .catch(() => setApiConnected(false))
-      .finally(() => setLoading(false));
+      .then(([h, s]) => { setHospitals(h); setStats(s); setLive(true); })
+      .catch(() => setLive(false));
   }, []);
+
+  const STATS = [
+    { label: 'Hospitals',       value: stats.total_hospitals, note: 'indexed' },
+    { label: 'Medical Deserts', value: stats.medical_deserts, note: '< 5 doctors', accent: 'var(--red)' },
+    { label: 'Critical Zones',  value: stats.critical_zones,  note: 'no ICU',       accent: 'var(--amber)' },
+    { label: 'Good Coverage',   value: stats.good,            note: 'fully equipped', accent: 'var(--green)' },
+  ];
 
   return (
     <>
-      <Head>
-        <title>Dashboard — Healthcare AI</title>
-        <meta name="description" content="Healthcare AI analytics dashboard showing hospital coverage across India" />
-      </Head>
+      <Head><title>Dashboard — HealthcareAI</title></Head>
+      <div className="container" style={{ padding: '40px 24px 60px' }}>
 
-      <div className="container" style={{ paddingTop: '2rem', paddingBottom: '4rem' }}>
-        {/* Hero header */}
-        <div className="fade-in" style={{ marginBottom: '2.5rem' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem', marginBottom: '0.5rem' }}>
-            <h1 className="page-title" style={{ marginBottom: 0 }}>
-              📊 Healthcare AI Dashboard
-            </h1>
-            {apiConnected !== null && (
-              <span style={{
-                fontSize: '0.72rem', fontWeight: 700, padding: '0.25rem 0.75rem',
-                borderRadius: '999px',
-                background: apiConnected ? 'rgba(34,197,94,0.12)' : 'rgba(245,158,11,0.12)',
-                border: `1px solid ${apiConnected ? 'rgba(34,197,94,0.3)' : 'rgba(245,158,11,0.3)'}`,
-                color: apiConnected ? '#22c55e' : '#f59e0b',
-              }}>
-                {apiConnected ? '● Live Data' : '● Demo Mode'}
+        {/* Header */}
+        <div className="fade" style={{ marginBottom: 32 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6 }}>
+            <h1 className="page-title" style={{ marginBottom: 0 }}>Dashboard</h1>
+            {live !== null && (
+              <span className={`badge badge-${live ? 'ok' : 'warn'}`} style={{ fontSize: 10 }}>
+                <span className="dot" style={{ width: 5, height: 5, background: live ? 'var(--green)' : 'var(--amber)' }} />
+                {live ? 'Live' : 'Demo'}
               </span>
             )}
           </div>
-          <p className="page-subtitle">
-            Real-time analytics across India's hospital network — detecting medical deserts, critical zones, and coverage gaps
-          </p>
+          <p className="page-sub">Real-time hospital analytics across India's healthcare network</p>
         </div>
 
-        {/* Stats row */}
-        <div className="grid-4 fade-in fade-in-delay-1" style={{ marginBottom: '2rem' }}>
-          <StatCard icon="🏥" label="Total Hospitals"  value={stats.total_hospitals} color="#3b82f6" />
-          <StatCard icon="🔴" label="Medical Deserts"  value={stats.medical_deserts} sub="< 5 doctors" color="#dc2626" />
-          <StatCard icon="⚠️" label="Critical Zones"   value={stats.critical_zones} sub="No ICU" color="#ef4444" />
-          <StatCard icon="🟢" label="Good Coverage"    value={stats.good} sub="Fully equipped" color="#22c55e" />
+        {/* Stat row */}
+        <div className="grid-4 fade fade-1" style={{ marginBottom: 28 }}>
+          {STATS.map(s => (
+            <div key={s.label} className="card" style={{ padding: '18px 20px' }}>
+              <div style={{ fontSize: 28, fontWeight: 700, letterSpacing: '-0.03em', color: s.accent || 'var(--t1)', lineHeight: 1 }}>
+                {s.value}
+              </div>
+              <div style={{ fontSize: 13, color: 'var(--t2)', marginTop: 4 }}>{s.label}</div>
+              <div style={{ fontSize: 11, color: 'var(--t3)', marginTop: 2 }}>{s.note}</div>
+            </div>
+          ))}
         </div>
 
         {/* Quick links */}
-        <div className="fade-in fade-in-delay-2" style={{ marginBottom: '2rem' }}>
-          <div style={{ fontSize: '0.85rem', fontWeight: 700, color: '#64748b', marginBottom: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-            Quick Actions
-          </div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: '0.75rem' }}>
-            {QUICK_LINKS.map(ql => (
-              <Link key={ql.href} href={ql.href} style={{
-                background: 'rgba(15,23,42,0.7)',
-                border: `1px solid rgba(30,41,59,0.8)`,
-                borderRadius: '12px', padding: '1rem',
-                display: 'flex', alignItems: 'center', gap: '0.75rem',
-                transition: 'all 0.2s',
-                backdropFilter: 'blur(10px)',
-                textDecoration: 'none',
-              }}
-                onMouseEnter={e => { e.currentTarget.style.borderColor=`${ql.color}40`; e.currentTarget.style.background=`${ql.color}0a`; e.currentTarget.style.transform='translateY(-2px)'; }}
-                onMouseLeave={e => { e.currentTarget.style.borderColor='rgba(30,41,59,0.8)'; e.currentTarget.style.background='rgba(15,23,42,0.7)'; e.currentTarget.style.transform='translateY(0)'; }}
-              >
-                <div style={{
-                  width: 40, height: 40, borderRadius: '10px', flexShrink: 0,
-                  background: `${ql.color}15`, border: `1px solid ${ql.color}25`,
-                  display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.2rem',
-                }}>{ql.icon}</div>
-                <div>
-                  <div style={{ fontWeight: 700, fontSize: '0.85rem', color: '#f1f5f9', marginBottom: '0.1rem' }}>{ql.label}</div>
-                  <div style={{ fontSize: '0.72rem', color: '#64748b' }}>{ql.desc}</div>
-                </div>
-              </Link>
+        <div className="fade fade-2" style={{ marginBottom: 28 }}>
+          <p className="section-label">Quick Actions</p>
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+            {[
+              { href: '/upload',  label: 'Upload documents' },
+              { href: '/extract', label: 'Extract hospital data' },
+              { href: '/rag',     label: 'Query knowledge base' },
+              { href: '/map',     label: 'View coverage map' },
+              { href: '/results', label: 'Browse all results' },
+            ].map(l => (
+              <Link key={l.href} href={l.href} className="btn btn-ghost">{l.label}</Link>
             ))}
           </div>
         </div>
 
-        {/* Alerts + Pipeline */}
-        <div className="grid-2 fade-in fade-in-delay-3" style={{ marginBottom: '2rem' }}>
-          <div className="card">
-            <div className="section-title">🚨 Active Alerts</div>
-            <AlertPanel />
-          </div>
-
-          <div className="card">
-            <div className="section-title">🔄 Pipeline Status</div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0' }}>
-              {PIPELINE.map((p, i) => (
+        {/* Two columns */}
+        <div className="grid-2 fade fade-3" style={{ marginBottom: 28, alignItems: 'start' }}>
+          {/* Alerts */}
+          <div className="card" style={{ padding: 0 }}>
+            <div style={{ padding: '14px 20px', borderBottom: '1px solid var(--border)' }}>
+              <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--t1)' }}>Active Alerts</span>
+            </div>
+            <div style={{ padding: '8px 0' }}>
+              {[
+                { color: 'var(--red)',   label: 'Medical Desert', msg: 'Barmer PHC — 2 doctors for 12,000 people', time: '2m' },
+                { color: 'var(--red)',   label: 'Critical Zone',   msg: 'Vidarbha — no ICU, no ambulances',         time: '5m' },
+                { color: 'var(--amber)', label: 'High Occupancy',  msg: 'Pune City Hospital at 87% capacity',       time: '12m' },
+                { color: 'var(--amber)', label: 'Equipment Gap',   msg: 'Jharkhand PHC missing ventilator',         time: '18m' },
+                { color: 'var(--green)', label: 'Full Coverage',   msg: 'AIIMS Delhi — 500k+ served',               time: '25m' },
+              ].map((a, i) => (
                 <div key={i} style={{
-                  display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                  padding: '0.65rem 0',
-                  borderBottom: i < PIPELINE.length - 1 ? '1px solid rgba(30,41,59,0.5)' : 'none',
-                  transition: 'all 0.15s',
+                  display: 'flex', alignItems: 'center', gap: 12,
+                  padding: '10px 20px',
+                  borderBottom: i < 4 ? '1px solid var(--border)' : 'none',
                 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
-                    <span style={{ fontSize: '1rem' }}>{p.icon}</span>
-                    <span style={{ fontSize: '0.87rem', color: '#cbd5e1' }}>{p.label}</span>
+                  <span style={{ width: 6, height: 6, borderRadius: '50%', background: a.color, flexShrink: 0 }} />
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <span style={{ fontSize: 13, fontWeight: 500, color: 'var(--t1)' }}>{a.label} </span>
+                    <span style={{ fontSize: 12, color: 'var(--t2)' }}>{a.msg}</span>
                   </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                    <span style={{
-                      width: 7, height: 7, borderRadius: '50%', background: p.color,
-                      boxShadow: `0 0 6px ${p.color}70`,
-                      animation: 'pulse-dot 2s ease-in-out infinite',
-                    }} />
-                    <span style={{ fontSize: '0.78rem', fontWeight: 700, color: p.color }}>
-                      {p.status}
-                    </span>
-                  </div>
+                  <span style={{ fontSize: 11, color: 'var(--t3)', flexShrink: 0 }}>{a.time} ago</span>
                 </div>
               ))}
             </div>
+          </div>
 
-            {/* API connection note */}
-            <div style={{
-              marginTop: '1rem', paddingTop: '0.75rem',
-              borderTop: '1px solid rgba(30,41,59,0.5)',
-              fontSize: '0.75rem', color: '#475569',
-            }}>
-              {apiConnected === true && '✅ Connected to live backend API'}
-              {apiConnected === false && '⚠️ Backend offline — showing demo data. Start backend with: uvicorn main:app --reload'}
-              {apiConnected === null && '⏳ Connecting to backend…'}
+          {/* Pipeline */}
+          <div className="card" style={{ padding: 0 }}>
+            <div style={{ padding: '14px 20px', borderBottom: '1px solid var(--border)' }}>
+              <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--t1)' }}>Pipeline Status</span>
+            </div>
+            <div style={{ padding: '8px 0' }}>
+              {[
+                'Data Ingestion', 'AI Extraction', 'RAG Indexing', 'Detection Logic', 'Map Rendering',
+              ].map((p, i) => (
+                <div key={i} style={{
+                  display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                  padding: '10px 20px',
+                  borderBottom: i < 4 ? '1px solid var(--border)' : 'none',
+                }}>
+                  <span style={{ fontSize: 13, color: 'var(--t2)' }}>{p}</span>
+                  <span style={{ fontSize: 12, color: 'var(--green)', fontWeight: 500, display: 'flex', alignItems: 'center', gap: 5 }}>
+                    <span style={{ width: 5, height: 5, borderRadius: '50%', background: 'var(--green)' }} />
+                    Active
+                  </span>
+                </div>
+              ))}
+            </div>
+            <div style={{ padding: '10px 20px', borderTop: '1px solid var(--border)' }}>
+              <span style={{ fontSize: 11, color: 'var(--t3)' }}>
+                {live === true  && 'Connected to backend API'}
+                {live === false && 'Backend offline — showing demo data'}
+                {live === null  && 'Connecting…'}
+              </span>
             </div>
           </div>
         </div>
 
-        {/* Hospital registry */}
-        <div className="fade-in fade-in-delay-4">
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', flexWrap: 'wrap', gap: '0.5rem' }}>
-            <div className="section-title" style={{ marginBottom: 0 }}>🏥 Hospital Registry</div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-              {loading && (
-                <span style={{ fontSize: '0.78rem', color: '#64748b', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                  <div className="spinner spinner-sm" /> Syncing…
-                </span>
-              )}
-              <Link href="/results" className="btn btn-ghost" style={{ fontSize: '0.78rem', padding: '0.4rem 0.9rem' }}>
-                View All →
-              </Link>
-            </div>
+        {/* Hospital table */}
+        <div className="fade fade-4">
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+            <p className="section-label" style={{ marginBottom: 0 }}>Hospital Registry</p>
+            <Link href="/results" style={{ fontSize: 12, color: 'var(--blue)' }}>View all →</Link>
           </div>
-          <div className="grid-3">
+          <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
+            {/* Table header */}
+            <div style={{
+              display: 'grid', gridTemplateColumns: '2fr 1fr 60px 60px 70px 80px',
+              padding: '10px 20px', borderBottom: '1px solid var(--border)',
+              fontSize: 11, fontWeight: 600, color: 'var(--t3)', letterSpacing: '0.06em', textTransform: 'uppercase',
+            }}>
+              <span>Name</span><span>Location</span><span>Doctors</span><span>Beds</span><span>Score</span><span>Status</span>
+            </div>
             {hospitals.slice(0, 6).map((h, i) => (
-              <div key={h.id} style={{ animation: `fadeInUp 0.4s ease ${i * 0.05}s both` }}>
-                <HospitalCard hospital={h} />
+              <div key={h.id} style={{
+                display: 'grid', gridTemplateColumns: '2fr 1fr 60px 60px 70px 80px',
+                padding: '12px 20px',
+                borderBottom: i < Math.min(hospitals.length, 6) - 1 ? '1px solid var(--border)' : 'none',
+                alignItems: 'center',
+                transition: 'background 0.1s',
+              }}
+                onMouseEnter={e => e.currentTarget.style.background = 'var(--bg-2)'}
+                onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+              >
+                <span style={{ fontSize: 13, fontWeight: 500, color: 'var(--t1)' }}>{h.name}</span>
+                <span style={{ fontSize: 12, color: 'var(--t2)' }}>{h.location}</span>
+                <span style={{ fontSize: 13, color: 'var(--t1)' }}>{h.doctors}</span>
+                <span style={{ fontSize: 13, color: 'var(--t1)' }}>{h.beds || '—'}</span>
+                <div>
+                  {h.score !== undefined && (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <div style={{ flex: 1, height: 3, background: 'var(--bg-3)', borderRadius: 2, overflow: 'hidden', maxWidth: 40 }}>
+                        <div style={{ height: '100%', width: `${h.score}%`, background: STATUS_DOT[h.status] || 'var(--blue)', borderRadius: 2 }} />
+                      </div>
+                      <span style={{ fontSize: 11, color: 'var(--t3)' }}>{h.score}</span>
+                    </div>
+                  )}
+                </div>
+                <span className={`badge badge-${h.status === 'Good' ? 'good' : h.status === 'Medium' ? 'medium' : h.status === 'Critical' ? 'critical' : 'desert'}`}>
+                  <span style={{ width: 5, height: 5, borderRadius: '50%', background: STATUS_DOT[h.status], display: 'inline-block' }} />
+                  {h.status}
+                </span>
               </div>
             ))}
           </div>

@@ -3,250 +3,146 @@ import FileUpload from '../components/FileUpload';
 import { useState, useEffect } from 'react';
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
-
-const FILE_ICONS = { pdf: '📕', txt: '📄', csv: '📊', docx: '📝' };
-const TYPE_COLORS = {
-  pdf:  { bg: 'rgba(239,68,68,0.1)',   border: 'rgba(239,68,68,0.25)',   color: '#fca5a5' },
-  txt:  { bg: 'rgba(59,130,246,0.1)',  border: 'rgba(59,130,246,0.25)',  color: '#93c5fd' },
-  csv:  { bg: 'rgba(34,197,94,0.1)',   border: 'rgba(34,197,94,0.25)',   color: '#86efac' },
-  docx: { bg: 'rgba(139,92,246,0.1)',  border: 'rgba(139,92,246,0.25)', color: '#c4b5fd' },
-};
+const EXT_COLOR = { pdf: '#f87171', txt: '#60a5fa', csv: '#4ade80', docx: '#c084fc' };
 
 export default function UploadPage() {
-  const [docs, setDocs] = useState([]);
-  const [stats, setStats] = useState(null);
+  const [docs, setDocs]       = useState([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
+  const [err, setErr]         = useState('');
   const [deleting, setDeleting] = useState(null);
 
-  const fetchDocs = async () => {
+  const load = async () => {
     try {
-      const [docsRes, statsRes] = await Promise.all([
-        fetch(`${API_BASE}/api/upload/`),
-        fetch(`${API_BASE}/api/upload/stats`),
-      ]);
-      if (!docsRes.ok) throw new Error('Failed to load documents');
-      const docsData = await docsRes.json();
-      const statsData = statsRes.ok ? await statsRes.json() : null;
-      setDocs(docsData);
-      setStats(statsData);
-      setError('');
-    } catch (e) {
-      setError('Could not reach the API. Make sure the backend is running.');
-    } finally {
-      setLoading(false);
-    }
+      const r = await fetch(`${API_BASE}/api/upload/`);
+      if (!r.ok) throw new Error();
+      setDocs(await r.json()); setErr('');
+    } catch { setErr('Cannot reach backend.'); }
+    finally { setLoading(false); }
   };
 
-  useEffect(() => { fetchDocs(); }, []);
+  useEffect(() => { load(); }, []);
 
-  const handleNewFiles = (files) => {
-    // Add files that come from the uploader optimistically; then refresh
-    setDocs(prev => {
-      const newOnes = files.filter(f => !prev.find(d => d.name === f.name));
-      return [...prev, ...newOnes];
-    });
-    setTimeout(fetchDocs, 800);
+  const onAdd = files => { setDocs(p => [...p, ...files.filter(f => !p.find(d => d.name === f.name))]); setTimeout(load, 800); };
+
+  const del = async id => {
+    setDeleting(id);
+    try { await fetch(`${API_BASE}/api/upload/${id}`, { method: 'DELETE' }); await load(); }
+    catch {} finally { setDeleting(null); }
   };
 
-  const handleDelete = async (docId) => {
-    setDeleting(docId);
-    try {
-      await fetch(`${API_BASE}/api/upload/${docId}`, { method: 'DELETE' });
-      await fetchDocs();
-    } catch {
-      // silently ignore
-    } finally {
-      setDeleting(null);
-    }
-  };
-
-  const totalChunks = docs.reduce((a, d) => a + (d.chunks || 0), 0);
+  const total = docs.reduce((a, d) => a + (d.chunks || 0), 0);
 
   return (
     <>
-      <Head>
-        <title>Upload — Healthcare AI</title>
-        <meta name="description" content="Upload hospital documents for RAG indexing and vector embedding" />
-      </Head>
+      <Head><title>Upload — HealthcareAI</title></Head>
+      <div className="container" style={{ padding: '40px 24px 60px', maxWidth: 840 }}>
 
-      <div className="container" style={{ paddingTop: '2rem', paddingBottom: '4rem', maxWidth: '900px' }}>
-        {/* Header */}
-        <div className="fade-in" style={{ marginBottom: '2rem' }}>
-          <h1 className="page-title">📁 Document Upload</h1>
-          <p className="page-subtitle">
-            Upload hospital reports, surveys, or data files — they'll be chunked and embedded into the RAG vector store for semantic search
-          </p>
+        <div className="fade">
+          <h1 className="page-title">Upload</h1>
+          <p className="page-sub">Add documents to the RAG vector store. Supports PDF, TXT, CSV, DOCX.</p>
         </div>
 
-        {/* Stats strip */}
-        <div className="fade-in fade-in-delay-1" style={{
-          display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.75rem', marginBottom: '1.5rem',
-        }}>
+        {/* Stats */}
+        <div style={{ display: 'flex', gap: 24, marginBottom: 24 }} className="fade fade-1">
           {[
-            { icon: '📚', label: 'Documents', value: loading ? '…' : docs.length, color: '#60a5fa' },
-            { icon: '🧩', label: 'Total Chunks', value: loading ? '…' : totalChunks.toLocaleString(), color: '#5eead4' },
-            { icon: '✅', label: 'Embedded', value: loading ? '…' : docs.filter(d => d.status === 'Embedded').length, color: '#86efac' },
-          ].map((s, i) => (
-            <div key={i} style={{
-              background: 'rgba(15,23,42,0.7)', border: '1px solid rgba(30,41,59,0.8)',
-              borderRadius: '12px', padding: '1rem 1.25rem',
-              display: 'flex', alignItems: 'center', gap: '0.85rem',
-              backdropFilter: 'blur(10px)',
-            }}>
-              <span style={{ fontSize: '1.6rem' }}>{s.icon}</span>
-              <div>
-                <div style={{ fontWeight: 800, fontSize: '1.4rem', color: s.color, lineHeight: 1 }}>{s.value}</div>
-                <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '0.15rem' }}>{s.label}</div>
-              </div>
+            { n: docs.length, label: 'Documents' },
+            { n: total,       label: 'Chunks indexed' },
+            { n: docs.filter(d => d.status === 'Embedded').length, label: 'Embedded' },
+          ].map(s => (
+            <div key={s.label}>
+              <div style={{ fontSize: 22, fontWeight: 700, color: 'var(--t1)', letterSpacing: '-0.02em' }}>{loading ? '—' : s.n}</div>
+              <div style={{ fontSize: 12, color: 'var(--t3)', marginTop: 2 }}>{s.label}</div>
             </div>
           ))}
         </div>
 
-        {/* Upload zone */}
-        <div className="card fade-in fade-in-delay-2" style={{ marginBottom: '1.5rem' }}>
-          <div className="section-title">📤 Add Documents</div>
-          {error && (
-            <div style={{
-              background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.25)',
-              borderRadius: '10px', padding: '0.85rem 1rem',
-              fontSize: '0.85rem', color: '#fca5a5', marginBottom: '1rem',
-              display: 'flex', alignItems: 'center', gap: '0.5rem',
-            }}>
-              ⚠️ {error}
-            </div>
-          )}
-          <FileUpload onFilesAdded={handleNewFiles} />
+        {/* Uploader */}
+        <div className="card fade fade-2" style={{ marginBottom: 12 }}>
+          {err && <div className="alert alert-err" style={{ marginBottom: 12 }}>{err}</div>}
+          <FileUpload onFilesAdded={onAdd} />
         </div>
 
-        {/* Vector store */}
-        <div className="card fade-in fade-in-delay-3">
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem', flexWrap: 'wrap', gap: '0.5rem' }}>
-            <div className="section-title" style={{ marginBottom: 0 }}>
-              🗃️ Vector Store
-              <span style={{
-                marginLeft: '0.5rem', background: 'rgba(59,130,246,0.12)', border: '1px solid rgba(59,130,246,0.25)',
-                borderRadius: '999px', padding: '0.15rem 0.6rem',
-                fontSize: '0.72rem', color: '#60a5fa', fontWeight: 700,
-              }}>{docs.length} docs</span>
-            </div>
-            <button
-              onClick={fetchDocs}
-              className="btn btn-ghost"
-              style={{ fontSize: '0.78rem', padding: '0.4rem 0.85rem' }}
-            >
-              🔄 Refresh
-            </button>
+        {/* Document list */}
+        <div className="card fade fade-3" style={{ padding: 0, overflow: 'hidden' }}>
+          <div style={{
+            padding: '12px 20px', borderBottom: '1px solid var(--border)',
+            display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+          }}>
+            <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--t1)' }}>Vector Store</span>
+            <button className="btn btn-ghost" style={{ padding: '4px 10px', fontSize: 12 }} onClick={load}>Refresh</button>
           </div>
 
           {loading ? (
-            <div className="spinner" />
+            <div style={{ padding: 40, display: 'flex', justifyContent: 'center' }}><div className="spinner" /></div>
           ) : docs.length === 0 ? (
-            <div style={{ textAlign: 'center', padding: '3rem', color: '#64748b' }}>
-              <div style={{ fontSize: '3rem', marginBottom: '0.75rem' }}>📭</div>
-              <div style={{ fontWeight: 600, marginBottom: '0.4rem' }}>No documents yet</div>
-              <div style={{ fontSize: '0.82rem' }}>Upload your first file above to get started</div>
-            </div>
+            <div style={{ padding: 40, textAlign: 'center', color: 'var(--t3)', fontSize: 13 }}>No documents yet</div>
           ) : (
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(270px, 1fr))', gap: '0.75rem' }}>
-              {docs.map((doc, i) => {
-                const ext = doc.type || doc.name?.split('.').pop()?.toLowerCase() || 'txt';
-                const icon = FILE_ICONS[ext] || '📄';
-                const typeStyle = TYPE_COLORS[ext] || TYPE_COLORS.txt;
-                return (
-                  <div key={doc.id || i} style={{
-                    background: 'rgba(10,15,30,0.6)',
-                    border: '1px solid rgba(30,41,59,0.9)',
-                    borderRadius: '12px', padding: '1rem',
-                    transition: 'all 0.2s', position: 'relative',
-                    animation: `fadeInUp 0.3s ease ${i * 0.04}s both`,
-                  }}
-                    onMouseEnter={e => { e.currentTarget.style.borderColor='rgba(51,65,85,0.7)'; e.currentTarget.style.background='rgba(15,23,42,0.8)'; }}
-                    onMouseLeave={e => { e.currentTarget.style.borderColor='rgba(30,41,59,0.9)'; e.currentTarget.style.background='rgba(10,15,30,0.6)'; }}
-                  >
-                    <div style={{ display: 'flex', gap: '0.7rem', alignItems: 'flex-start', marginBottom: '0.7rem' }}>
-                      <span style={{ fontSize: '1.6rem', flexShrink: 0, lineHeight: 1 }}>{icon}</span>
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{ fontWeight: 700, fontSize: '0.85rem', marginBottom: '0.15rem', wordBreak: 'break-all', lineHeight: 1.3 }}>
-                          {doc.name}
-                        </div>
-                        <div style={{ fontSize: '0.73rem', color: '#64748b' }}>
-                          {doc.size_human || doc.size} · {doc.chunks} chunks
-                        </div>
-                      </div>
-                    </div>
+            docs.map((doc, i) => {
+              const ext = (doc.type || doc.name?.split('.').pop() || 'txt').toLowerCase();
+              return (
+                <div key={doc.id || i} style={{
+                  display: 'flex', alignItems: 'center', gap: 12,
+                  padding: '11px 20px',
+                  borderBottom: i < docs.length - 1 ? '1px solid var(--border)' : 'none',
+                  transition: 'background 0.1s',
+                }}
+                  onMouseEnter={e => e.currentTarget.style.background = 'var(--bg-2)'}
+                  onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                >
+                  {/* ext badge */}
+                  <span style={{
+                    fontSize: 10, fontWeight: 700, textTransform: 'uppercase',
+                    color: EXT_COLOR[ext] || 'var(--t3)',
+                    background: `${EXT_COLOR[ext] || '#52525b'}14`,
+                    border: `1px solid ${EXT_COLOR[ext] || '#52525b'}28`,
+                    borderRadius: 4, padding: '2px 6px', flexShrink: 0, letterSpacing: '0.04em',
+                  }}>{ext}</span>
 
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                      <div style={{ display: 'flex', gap: '0.4rem' }}>
-                        <span style={{
-                          background: typeStyle.bg, border: `1px solid ${typeStyle.border}`,
-                          color: typeStyle.color,
-                          borderRadius: '5px', padding: '0.18rem 0.5rem',
-                          fontSize: '0.68rem', fontWeight: 700, textTransform: 'uppercase',
-                        }}>{ext}</span>
-                        <span style={{
-                          background: doc.status === 'Embedded' ? 'rgba(34,197,94,0.1)' : 'rgba(245,158,11,0.1)',
-                          border: `1px solid ${doc.status === 'Embedded' ? 'rgba(34,197,94,0.25)' : 'rgba(245,158,11,0.25)'}`,
-                          borderRadius: '5px', padding: '0.18rem 0.5rem',
-                          fontSize: '0.68rem', fontWeight: 700,
-                          color: doc.status === 'Embedded' ? '#22c55e' : '#f59e0b',
-                        }}>
-                          {doc.status === 'Embedded' ? '✓' : '⏳'} {doc.status}
-                        </span>
-                      </div>
+                  {/* Name */}
+                  <span style={{ fontSize: 13, color: 'var(--t1)', flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    {doc.name}
+                  </span>
 
-                      {doc.id && (
-                        <button
-                          onClick={() => handleDelete(doc.id)}
-                          disabled={deleting === doc.id}
-                          style={{
-                            background: 'none', border: 'none', cursor: 'pointer',
-                            color: '#475569', fontSize: '1rem', padding: '0.2rem',
-                            lineHeight: 1, transition: 'color 0.15s',
-                          }}
-                          onMouseEnter={e => e.currentTarget.style.color='#ef4444'}
-                          onMouseLeave={e => e.currentTarget.style.color='#475569'}
-                          title="Remove from store"
-                        >
-                          {deleting === doc.id ? '⏳' : '🗑'}
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
+                  {/* Meta */}
+                  <span style={{ fontSize: 12, color: 'var(--t3)', flexShrink: 0 }}>
+                    {doc.size_human || doc.size} · {doc.chunks} chunks
+                  </span>
+
+                  {/* Status */}
+                  <span style={{
+                    fontSize: 12, color: doc.status === 'Embedded' ? 'var(--green)' : 'var(--amber)',
+                    fontWeight: 500, flexShrink: 0,
+                  }}>
+                    {doc.status === 'Embedded' ? '✓ Embedded' : '⏳ Processing'}
+                  </span>
+
+                  {/* Delete */}
+                  {doc.id && (
+                    <button onClick={() => del(doc.id)} disabled={deleting === doc.id}
+                      style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--t3)', fontSize: 14, padding: '2px 4px', transition: 'color 0.1s' }}
+                      onMouseEnter={e => e.currentTarget.style.color = 'var(--red)'}
+                      onMouseLeave={e => e.currentTarget.style.color = 'var(--t3)'}
+                    >
+                      {deleting === doc.id ? <div className="spinner" style={{ width: 12, height: 12, borderWidth: 1.5 }} /> : '×'}
+                    </button>
+                  )}
+                </div>
+              );
+            })
           )}
         </div>
 
-        {/* How it works */}
-        <div className="card fade-in fade-in-delay-4" style={{ marginTop: '1.5rem' }}>
-          <div className="section-title">⚙️ How RAG Ingestion Works</div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '0.75rem' }}>
-            {[
-              { step: '1', icon: '📤', title: 'Upload File', desc: 'PDF, TXT, CSV accepted and stored' },
-              { step: '2', icon: '✂️', title: 'Chunking',   desc: 'Split into ~500 char semantic chunks' },
-              { step: '3', icon: '🧠', title: 'Embedding',  desc: 'Each chunk vectorized via embeddings' },
-              { step: '4', icon: '🗄️', title: 'IndexStore', desc: 'Vectors stored in ChromaDB for retrieval' },
-            ].map(s => (
-              <div key={s.step} style={{
-                background: 'rgba(10,15,30,0.5)', borderRadius: '10px',
-                padding: '1rem', border: '1px solid rgba(30,41,59,0.7)',
-                display: 'flex', gap: '0.75rem', alignItems: 'flex-start',
-              }}>
-                <div style={{
-                  width: 32, height: 32, borderRadius: '8px',
-                  background: 'rgba(59,130,246,0.12)', border: '1px solid rgba(59,130,246,0.25)',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  fontSize: '1rem', flexShrink: 0,
-                }}>{s.icon}</div>
-                <div>
-                  <div style={{ fontWeight: 700, fontSize: '0.82rem', marginBottom: '0.2rem' }}>{s.title}</div>
-                  <div style={{ fontSize: '0.75rem', color: '#64748b', lineHeight: 1.4 }}>{s.desc}</div>
-                </div>
+        {/* Steps */}
+        <div style={{ marginTop: 24, display: 'flex', gap: 8 }} className="fade fade-4">
+          {['Upload file', 'Chunk text', 'Embed vectors', 'Index in ChromaDB'].map((s, i, arr) => (
+            <div key={s} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '6px 12px', background: 'var(--bg-1)', border: '1px solid var(--border)', borderRadius: 6 }}>
+                <span style={{ fontSize: 11, color: 'var(--t3)', fontWeight: 600, width: 16, height: 16, borderRadius: '50%', background: 'var(--bg-2)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{i+1}</span>
+                <span style={{ fontSize: 12, color: 'var(--t2)' }}>{s}</span>
               </div>
-            ))}
-          </div>
+              {i < arr.length - 1 && <span style={{ fontSize: 12, color: 'var(--t3)' }}>→</span>}
+            </div>
+          ))}
         </div>
       </div>
     </>

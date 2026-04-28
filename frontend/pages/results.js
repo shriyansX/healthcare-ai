@@ -1,161 +1,134 @@
 import Head from 'next/head';
 import { useEffect, useState } from 'react';
-import HospitalCard from '../components/HospitalCard';
 import { api } from '../lib/api';
 
 const FALLBACK = [
-  { id:1, name:'AIIMS Delhi', location:'Delhi', doctors:320, nurses:850, beds:1000, ambulances:12, population_served:500000, equipment:['MRI','CT scan','ICU','Ventilator','NICU','Blood Bank','Lab'], status:'Good', score:92 },
-  { id:2, name:'Rural Clinic Vidarbha', location:'Vidarbha, MH', doctors:3, nurses:5, beds:10, ambulances:0, population_served:8000, equipment:['X-ray'], status:'Medical Desert', score:8 },
-  { id:3, name:'City Hospital Pune', location:'Pune, MH', doctors:45, nurses:120, beds:200, ambulances:5, population_served:75000, equipment:['MRI','CT scan','ICU','X-ray','Lab','Pharmacy'], status:'Good', score:71 },
-  { id:4, name:'PHC Barmer', location:'Barmer, RJ', doctors:2, nurses:4, beds:6, ambulances:1, population_served:12000, equipment:['X-ray'], status:'Medical Desert', score:5 },
-  { id:5, name:'Apollo Chennai', location:'Chennai, TN', doctors:210, nurses:600, beds:800, ambulances:15, population_served:300000, equipment:['MRI','CT scan','ICU','Ventilator','NICU','Blood Bank','Lab','Dialysis'], status:'Good', score:95 },
+  { id:1, name:'AIIMS Delhi', location:'Delhi', doctors:320, beds:1000, ambulances:12, population_served:500000, equipment:['MRI','CT scan','ICU','Ventilator','NICU','Blood Bank','Lab'], status:'Good', score:92 },
+  { id:2, name:'Rural Clinic Vidarbha', location:'Vidarbha, MH', doctors:3, beds:10, ambulances:0, population_served:8000, equipment:['X-ray'], status:'Medical Desert', score:8 },
+  { id:3, name:'City Hospital Pune', location:'Pune, MH', doctors:45, beds:200, ambulances:5, population_served:75000, equipment:['MRI','CT scan','ICU','X-ray','Lab'], status:'Good', score:71 },
+  { id:4, name:'PHC Barmer', location:'Barmer, RJ', doctors:2, beds:6, ambulances:1, population_served:12000, equipment:['X-ray'], status:'Medical Desert', score:5 },
+  { id:5, name:'Apollo Chennai', location:'Chennai, TN', doctors:210, beds:800, ambulances:15, population_served:300000, equipment:['MRI','ICU','NICU','Ventilator','Dialysis'], status:'Good', score:95 },
 ];
 
 const STATUS_ORDER = { 'Medical Desert': 0, Critical: 1, Medium: 2, Good: 3 };
-const STATUS_CONFIG = {
-  'Medical Desert': { icon: '🔴', color: '#f87171', bg: 'rgba(220,38,38,0.12)', border: 'rgba(220,38,38,0.3)' },
-  Critical:         { icon: '⚠️', color: '#fca5a5', bg: 'rgba(239,68,68,0.12)',  border: 'rgba(239,68,68,0.3)' },
-  Medium:           { icon: '🟡', color: '#fcd34d', bg: 'rgba(245,158,11,0.12)', border: 'rgba(245,158,11,0.3)' },
-  Good:             { icon: '🟢', color: '#86efac', bg: 'rgba(34,197,94,0.12)',  border: 'rgba(34,197,94,0.3)' },
-};
+const STATUS_DOT   = { Good: 'var(--green)', Medium: 'var(--amber)', Critical: 'var(--red)', 'Medical Desert': 'var(--red-deep)' };
+const STATUS_CLS   = { Good: 'badge-good', Medium: 'badge-medium', Critical: 'badge-critical', 'Medical Desert': 'badge-desert' };
+
+const FILTERS = ['All', 'Medical Desert', 'Critical', 'Medium', 'Good'];
 
 export default function ResultsPage() {
   const [hospitals, setHospitals] = useState(FALLBACK);
   const [loading, setLoading]     = useState(true);
-  const [filter, setFilter]       = useState('all');
-  const [sortBy, setSortBy]       = useState('status');
+  const [filter, setFilter]       = useState('All');
+  const [sort, setSort]           = useState('status');
   const [search, setSearch]       = useState('');
 
   useEffect(() => {
-    api.getHospitals()
-      .then(setHospitals)
-      .catch(() => {})
-      .finally(() => setLoading(false));
+    api.getHospitals().then(setHospitals).catch(() => {}).finally(() => setLoading(false));
   }, []);
 
-  let displayed = hospitals;
-  if (filter !== 'all') displayed = displayed.filter(h => h.status === filter);
-  if (search.trim())    displayed = displayed.filter(h =>
-    h.name.toLowerCase().includes(search.toLowerCase()) ||
-    h.location.toLowerCase().includes(search.toLowerCase())
-  );
-  if (sortBy === 'status')    displayed = [...displayed].sort((a,b) => STATUS_ORDER[a.status] - STATUS_ORDER[b.status]);
-  else if (sortBy === 'doctors') displayed = [...displayed].sort((a,b) => b.doctors - a.doctors);
-  else if (sortBy === 'score')   displayed = [...displayed].sort((a,b) => (b.score||0) - (a.score||0));
-  else if (sortBy === 'beds')    displayed = [...displayed].sort((a,b) => b.beds - a.beds);
+  let list = hospitals;
+  if (filter !== 'All')  list = list.filter(h => h.status === filter);
+  if (search.trim())     list = list.filter(h => `${h.name} ${h.location}`.toLowerCase().includes(search.toLowerCase()));
+  if (sort === 'status') list = [...list].sort((a,b) => STATUS_ORDER[a.status] - STATUS_ORDER[b.status]);
+  if (sort === 'doctors')list = [...list].sort((a,b) => b.doctors - a.doctors);
+  if (sort === 'score')  list = [...list].sort((a,b) => (b.score||0) - (a.score||0));
 
-  const counts = {
-    all: hospitals.length,
-    'Medical Desert': hospitals.filter(h => h.status === 'Medical Desert').length,
-    Critical: hospitals.filter(h => h.status === 'Critical').length,
-    Medium:   hospitals.filter(h => h.status === 'Medium').length,
-    Good:     hospitals.filter(h => h.status === 'Good').length,
-  };
+  const counts = FILTERS.reduce((o, f) => {
+    o[f] = f === 'All' ? hospitals.length : hospitals.filter(h => h.status === f).length;
+    return o;
+  }, {});
 
   return (
     <>
-      <Head>
-        <title>Results — Healthcare AI</title>
-        <meta name="description" content="Filtered and sorted hospital analysis results" />
-      </Head>
+      <Head><title>Results — HealthcareAI</title></Head>
+      <div className="container" style={{ padding: '40px 24px 60px' }}>
 
-      <div className="container" style={{ paddingTop: '2rem', paddingBottom: '4rem' }}>
-        {/* Header */}
-        <div className="fade-in" style={{ marginBottom: '2rem' }}>
-          <h1 className="page-title">📋 Analysis Results</h1>
-          <p className="page-subtitle">Browse, filter, and sort all analysed hospitals across India</p>
-        </div>
-
-        {/* Status summary strip */}
-        <div className="fade-in fade-in-delay-1" style={{
-          display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: '0.75rem', marginBottom: '1.5rem',
-        }}>
-          {Object.entries(STATUS_CONFIG).map(([status, cfg]) => (
-            <button
-              key={status}
-              onClick={() => setFilter(filter === status ? 'all' : status)}
-              style={{
-                background: filter === status ? cfg.bg : 'rgba(15,23,42,0.6)',
-                border: `1px solid ${filter === status ? cfg.border : 'rgba(30,41,59,0.8)'}`,
-                borderRadius: '12px', padding: '0.9rem 1rem',
-                cursor: 'pointer', transition: 'all 0.2s',
-                display: 'flex', flexDirection: 'column', gap: '0.3rem',
-                textAlign: 'left', backdropFilter: 'blur(10px)',
-              }}
-              onMouseEnter={e => { if (filter !== status) { e.currentTarget.style.borderColor=cfg.border; e.currentTarget.style.background=`${cfg.bg.slice(0,-2)}08)`; }}}
-              onMouseLeave={e => { if (filter !== status) { e.currentTarget.style.borderColor='rgba(30,41,59,0.8)'; e.currentTarget.style.background='rgba(15,23,42,0.6)'; }}}
-            >
-              <span style={{ fontSize: '1.3rem' }}>{cfg.icon}</span>
-              <span style={{ fontWeight: 800, fontSize: '1.5rem', color: cfg.color, lineHeight: 1 }}>{counts[status]}</span>
-              <span style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 600 }}>{status}</span>
-            </button>
-          ))}
+        <div className="fade">
+          <h1 className="page-title">Results</h1>
+          <p className="page-sub">Browse, filter and sort all analysed hospitals</p>
         </div>
 
         {/* Controls */}
-        <div className="fade-in fade-in-delay-2" style={{
-          display: 'flex', gap: '0.75rem', marginBottom: '1.5rem',
-          flexWrap: 'wrap', alignItems: 'center',
-          background: 'rgba(15,23,42,0.7)', border: '1px solid rgba(30,41,59,0.8)',
-          borderRadius: '12px', padding: '0.85rem 1rem',
-          backdropFilter: 'blur(10px)',
+        <div className="fade fade-1" style={{
+          display: 'flex', gap: 8, marginBottom: 16, flexWrap: 'wrap', alignItems: 'center',
         }}>
-          {/* Search */}
-          <div style={{ flex: '1 1 200px', position: 'relative' }}>
-            <span style={{ position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)', color: '#475569', fontSize: '0.9rem' }}>🔍</span>
-            <input
-              type="text"
-              value={search}
-              onChange={e => setSearch(e.target.value)}
-              placeholder="Search hospitals or locations…"
-              style={{ paddingLeft: '2rem', fontSize: '0.85rem' }}
-            />
-          </div>
-
-          {/* Status filter tabs */}
-          <div style={{ display: 'flex', gap: '0.35rem', flexWrap: 'wrap' }}>
-            {['all', 'Medical Desert', 'Critical', 'Medium', 'Good'].map(k => (
-              <button key={k} onClick={() => setFilter(k)}
-                className={`btn ${filter === k ? 'btn-primary' : 'btn-ghost'}`}
-                style={{ fontSize: '0.76rem', padding: '0.38rem 0.8rem' }}>
-                {k === 'all' ? '🌐 All' : k} ({counts[k] ?? counts.all})
+          <input
+            type="text"
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            placeholder="Search hospitals…"
+            style={{ width: 200, flex: 'none' }}
+          />
+          <div style={{ display: 'flex', gap: 4, flex: 1, flexWrap: 'wrap' }}>
+            {FILTERS.map(f => (
+              <button key={f} onClick={() => setFilter(f)}
+                className={`btn ${filter === f ? 'btn-primary' : 'btn-ghost'}`}
+                style={{ fontSize: 12, padding: '5px 10px' }}>
+                {f} {counts[f] > 0 && <span style={{ opacity: 0.65 }}>({counts[f]})</span>}
               </button>
             ))}
           </div>
-
-          {/* Sort */}
-          <div style={{ position: 'relative', flexShrink: 0 }}>
-            <select
-              value={sortBy}
-              onChange={e => setSortBy(e.target.value)}
-              style={{ fontSize: '0.82rem', paddingRight: '1.5rem', width: 'auto', minWidth: '180px' }}
-            >
-              <option value="status">Sort: By Status (worst first)</option>
-              <option value="doctors">Sort: Most Doctors</option>
-              <option value="score">Sort: Quality Score</option>
-              <option value="beds">Sort: Most Beds</option>
-            </select>
-          </div>
-
-          <span style={{ fontSize: '0.78rem', color: '#64748b', marginLeft: 'auto', whiteSpace: 'nowrap' }}>
-            {loading ? 'Loading…' : `${displayed.length} hospital${displayed.length !== 1 ? 's' : ''}`}
-          </span>
+          <select value={sort} onChange={e => setSort(e.target.value)} style={{ width: 'auto', fontSize: 12, padding: '6px 10px' }}>
+            <option value="status">Sort: Status</option>
+            <option value="doctors">Sort: Doctors</option>
+            <option value="score">Sort: Score</option>
+          </select>
+          <span style={{ fontSize: 12, color: 'var(--t3)' }}>{list.length} results</span>
         </div>
 
-        {/* Results */}
+        {/* Table */}
         {loading ? (
-          <div className="spinner" />
-        ) : displayed.length === 0 ? (
-          <div style={{ textAlign:'center', padding:'4rem', color:'#64748b' }}>
-            <div style={{ fontSize:'3rem', marginBottom:'0.75rem' }}>🔍</div>
-            <div style={{ fontWeight: 600, marginBottom: '0.4rem' }}>No hospitals match this filter</div>
-            <div style={{ fontSize: '0.85rem' }}>Try adjusting your search or filter criteria</div>
-          </div>
+          <div style={{ display: 'flex', justifyContent: 'center', padding: 48 }}><div className="spinner" /></div>
+        ) : list.length === 0 ? (
+          <div style={{ textAlign: 'center', padding: 48, color: 'var(--t3)', fontSize: 13 }}>No hospitals match this filter</div>
         ) : (
-          <div className="grid-3 fade-in fade-in-delay-3">
-            {displayed.map((h, i) => (
-              <div key={h.id} style={{ animation: `fadeInUp 0.4s ease ${i * 0.04}s both` }}>
-                <HospitalCard hospital={h} />
+          <div className="card fade fade-2" style={{ padding: 0, overflow: 'hidden' }}>
+            {/* Header */}
+            <div style={{
+              display: 'grid', gridTemplateColumns: '2fr 1fr 70px 70px 120px 90px',
+              padding: '10px 20px', borderBottom: '1px solid var(--border)',
+              fontSize: 11, fontWeight: 600, color: 'var(--t3)', textTransform: 'uppercase', letterSpacing: '0.06em',
+            }}>
+              <span>Hospital</span><span>Location</span><span>Doctors</span><span>Beds</span><span>Equipment</span><span>Status</span>
+            </div>
+            {list.map((h, i) => (
+              <div key={h.id} style={{
+                display: 'grid', gridTemplateColumns: '2fr 1fr 70px 70px 120px 90px',
+                padding: '12px 20px', alignItems: 'center',
+                borderBottom: i < list.length - 1 ? '1px solid var(--border)' : 'none',
+                transition: 'background 0.1s',
+                animation: `fadeUp 0.2s ease ${i * 0.03}s both`,
+              }}
+                onMouseEnter={e => e.currentTarget.style.background = 'var(--bg-2)'}
+                onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+              >
+                <div>
+                  <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--t1)', marginBottom: 1 }}>{h.name}</div>
+                  {h.score !== undefined && (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                      <div style={{ width: 36, height: 2, background: 'var(--bg-3)', borderRadius: 1, overflow: 'hidden' }}>
+                        <div style={{ width: `${h.score}%`, height: '100%', background: STATUS_DOT[h.status] }} />
+                      </div>
+                      <span style={{ fontSize: 10, color: 'var(--t3)', fontFamily: 'var(--mono)' }}>{h.score}</span>
+                    </div>
+                  )}
+                </div>
+                <span style={{ fontSize: 12, color: 'var(--t2)' }}>{h.location}</span>
+                <span style={{ fontSize: 13, color: 'var(--t1)' }}>{h.doctors}</span>
+                <span style={{ fontSize: 13, color: 'var(--t1)' }}>{h.beds || '—'}</span>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 3 }}>
+                  {(h.equipment || []).slice(0, 3).map(e => (
+                    <span key={e} className="chip" style={{ fontSize: 10 }}>{e}</span>
+                  ))}
+                  {(h.equipment || []).length > 3 && (
+                    <span className="chip" style={{ fontSize: 10, opacity: 0.5 }}>+{h.equipment.length - 3}</span>
+                  )}
+                </div>
+                <span className={`badge ${STATUS_CLS[h.status] || 'badge-medium'}`}>
+                  <span style={{ width: 5, height: 5, borderRadius: '50%', background: STATUS_DOT[h.status] }} />
+                  {h.status}
+                </span>
               </div>
             ))}
           </div>

@@ -8,15 +8,11 @@ const STATUS_COLOR = {
   'Medical Desert': '#dc2626',
 };
 
-const STATUS_ICON = {
-  Good: '🟢', Medium: '🟡', Critical: '⚠️', 'Medical Desert': '🔴',
-};
-
-function radius(doctors) {
-  if (doctors >= 200) return 18;
-  if (doctors >= 50)  return 13;
-  if (doctors >= 10)  return 9;
-  return 7;
+function dotRadius(doctors) {
+  if (doctors >= 200) return 16;
+  if (doctors >= 50)  return 11;
+  if (doctors >= 10)  return 8;
+  return 6;
 }
 
 export default function LeafletMapInner({ hospitals }) {
@@ -24,48 +20,34 @@ export default function LeafletMapInner({ hospitals }) {
     <MapContainer
       center={[22.5, 80.0]}
       zoom={5}
-      style={{ height: '540px', width: '100%' }}
-      zoomControl={true}
+      style={{ height: 500, width: '100%' }}
     >
       <TileLayer
-        attribution='&copy; <a href="https://www.openstreetmap.org">OpenStreetMap</a>'
-        url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+        url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
+        attribution=""
       />
       {hospitals.map(h => {
         const color = STATUS_COLOR[h.status] || '#94a3b8';
-        const r = radius(h.doctors);
         return (
           <CircleMarker
             key={h.id}
             center={[h.lat, h.lng]}
-            radius={r}
-            pathOptions={{
-              color,
-              fillColor: color,
-              fillOpacity: 0.85,
-              weight: 2,
-              opacity: 0.95,
-            }}
+            radius={dotRadius(h.doctors)}
+            pathOptions={{ color, fillColor: color, fillOpacity: 0.8, weight: 1.5 }}
           >
-            <Popup minWidth={200}>
-              <div style={{ fontFamily: 'Inter, sans-serif', padding: '0.25rem' }}>
-                <div style={{ fontWeight: 800, fontSize: '0.95rem', marginBottom: '0.3rem', color: '#0f172a' }}>
-                  {h.name}
-                </div>
+            <Popup minWidth={190}>
+              <div style={{ fontFamily: 'Inter, sans-serif', padding: '4px 2px' }}>
+                <div style={{ fontWeight: 700, fontSize: 13, color: '#f4f4f5', marginBottom: 4 }}>{h.name}</div>
                 <div style={{
-                  display: 'inline-flex', alignItems: 'center', gap: '0.3rem',
-                  background: `${color}20`, border: `1px solid ${color}40`,
-                  borderRadius: '6px', padding: '0.15rem 0.5rem',
-                  fontSize: '0.72rem', fontWeight: 700, color,
-                  marginBottom: '0.5rem',
+                  display: 'inline-flex', alignItems: 'center', gap: 5, marginBottom: 8,
+                  fontSize: 11, fontWeight: 600, color,
                 }}>
-                  {STATUS_ICON[h.status]} {h.status}
+                  <span style={{ width: 6, height: 6, borderRadius: '50%', background: color }} />
+                  {h.status}
                 </div>
-                <div style={{ fontSize: '0.8rem', color: '#374151', lineHeight: 1.6 }}>
-                  <div>👨‍⚕️ <strong>{h.doctors}</strong> doctors</div>
-                  <div>🏥 {h.equipment?.slice(0, 4).join(', ') || 'N/A'}
-                    {h.equipment?.length > 4 && ` +${h.equipment.length - 4} more`}
-                  </div>
+                <div style={{ fontSize: 12, color: '#a1a1aa', lineHeight: 1.7 }}>
+                  <div>{h.doctors} doctors</div>
+                  <div>{(h.equipment || []).slice(0, 4).join(', ')}{(h.equipment || []).length > 4 ? ` +${h.equipment.length - 4}` : ''}</div>
                 </div>
               </div>
             </Popup>
