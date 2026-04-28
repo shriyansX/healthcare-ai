@@ -1,126 +1,70 @@
 import Head from 'next/head';
-import { useState } from 'react';
-import { api } from '../lib/api';
+import { RAGSection } from '../components/Sections';
 
-const SAMPLES = [
-  'Which hospitals qualify as medical deserts in India?',
-  'What equipment does AIIMS Delhi have?',
-  'How many doctors serve Vidarbha region?',
-  'Which hospitals have ICU and ventilator facilities?',
-];
-
-const PIPELINE = [
-  ['Embed query',    'Text → vector via embedding model'],
-  ['Search index',   'Cosine similarity in ChromaDB'],
-  ['Retrieve top-k', 'Ranked relevant document chunks'],
-  ['Synthesize',     'LLM generates grounded answer'],
+const PIPELINE_STEPS = [
+  { icon:'⌨', label:'Query Input',    desc:'Natural language question',            color:'#4f8ef7' },
+  { icon:'🧮', label:'Embed Query',   desc:'Text → vector representation',         color:'#6366f1' },
+  { icon:'🗄', label:'ChromaDB Search',desc:'Cosine similarity search',             color:'#8b5cf6' },
+  { icon:'📑', label:'Top-K Chunks',  desc:'Most relevant document snippets',      color:'#06b6d4' },
+  { icon:'🤖', label:'LLM Synthesis', desc:'GPT generates a grounded answer',      color:'#10b981' },
 ];
 
 export default function RAGPage() {
-  const [query, setQuery]     = useState('');
-  const [result, setResult]   = useState(null);
-  const [loading, setLoading] = useState(false);
-  const [error, setError]     = useState('');
-
-  const run = async (q = query) => {
-    if (!q.trim()) return;
-    setLoading(true); setError(''); setResult(null);
-    try { setResult(await api.queryRAG(q)); }
-    catch (e) { setError(e.message); }
-    finally { setLoading(false); }
-  };
-
   return (
     <>
       <Head><title>RAG Engine — HealthcareAI</title></Head>
-      <div className="container" style={{ padding: '40px 24px 60px', maxWidth: 860 }}>
-
+      <div className="container" style={{ padding:'48px 28px 72px', maxWidth:960 }}>
         <div className="fade">
-          <h1 className="page-title">RAG Engine</h1>
-          <p className="page-sub">Query the hospital knowledge base using LlamaIndex + ChromaDB semantic search.</p>
+          <div style={{ display:'inline-flex', alignItems:'center', gap:7, background:'rgba(6,182,212,0.08)', border:'1px solid rgba(6,182,212,0.20)', borderRadius:999, padding:'4px 12px', marginBottom:16, fontSize:12, fontWeight:600, color:'#67e8f9' }}>
+            Step 3 of 5 — Query Knowledge Base
+          </div>
+          <h1 className="page-title">RAG <span className="title-accent">Engine</span></h1>
+          <p className="page-sub">Retrieval-Augmented Generation — ask natural language questions and get AI answers backed by real hospital documents.</p>
         </div>
 
-        {/* Query input */}
-        <div className="card fade fade-1" style={{ marginBottom: 12 }}>
-          <div style={{ display: 'flex', gap: 8, marginBottom: 10 }}>
-            <input
-              type="text"
-              value={query}
-              onChange={e => setQuery(e.target.value)}
-              onKeyDown={e => e.key === 'Enter' && run()}
-              placeholder="Ask about hospital data…"
-              id="rag-input"
-            />
-            <button className="btn btn-primary" onClick={() => run()} disabled={loading || !query.trim()} style={{ flexShrink: 0 }}>
-              {loading ? <div className="spinner" style={{ width: 14, height: 14, borderWidth: 2 }} /> : 'Search'}
-            </button>
-          </div>
-          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-            {SAMPLES.map((s, i) => (
-              <button key={i} className="btn btn-ghost" style={{ fontSize: 11 }} onClick={() => { setQuery(s); run(s); }}>{s}</button>
+        {/* Pipeline visualization */}
+        <div className="card fade fade-1" style={{ marginBottom:20, padding:'20px 24px 18px' }}>
+          <p className="section-label">Pipeline Architecture</p>
+          <div style={{ display:'flex', alignItems:'center', gap:0, overflowX:'auto', paddingBottom:4 }}>
+            {PIPELINE_STEPS.map((s,i,arr)=>(
+              <div key={s.label} style={{ display:'flex', alignItems:'center', flex:1, minWidth:130 }}>
+                <div style={{ flex:1, textAlign:'center' }}>
+                  <div style={{
+                    width:40, height:40, borderRadius:10, margin:'0 auto 8px',
+                    background:`${s.color}14`, border:`1px solid ${s.color}28`,
+                    display:'flex', alignItems:'center', justifyContent:'center',
+                    fontSize:18, transition:'all .2s',
+                  }}
+                    onMouseEnter={e=>{e.currentTarget.style.background=`${s.color}24`;e.currentTarget.style.borderColor=`${s.color}50`;e.currentTarget.style.boxShadow=`0 0 16px ${s.color}30`;}}
+                    onMouseLeave={e=>{e.currentTarget.style.background=`${s.color}14`;e.currentTarget.style.borderColor=`${s.color}28`;e.currentTarget.style.boxShadow='none';}}
+                  >{s.icon}</div>
+                  <div style={{ fontSize:12, fontWeight:700, color:'var(--t1)', marginBottom:2 }}>{s.label}</div>
+                  <div style={{ fontSize:10.5, color:'var(--t3)', lineHeight:1.4 }}>{s.desc}</div>
+                </div>
+                {i<arr.length-1 && <div style={{ color:'var(--t3)', fontSize:16, padding:'0 4px', marginBottom:24, flexShrink:0 }}>→</div>}
+              </div>
             ))}
           </div>
         </div>
 
-        {/* Error */}
-        {error && <div className="alert alert-err fade" style={{ marginBottom: 12 }}>{error}</div>}
+        {/* Query interface */}
+        <div className="card-grad fade fade-2" style={{ marginBottom:20 }}>
+          <p className="section-label">Ask the Knowledge Base</p>
+          <RAGSection />
+        </div>
 
-        {/* Result */}
-        {result && (
-          <div className="fade" style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-            {/* Answer */}
-            <div className="card" style={{ padding: '16px 20px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
-                <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--blue)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Answer</span>
-                <span style={{ fontSize: 11, color: 'var(--t3)' }}>· {result.total_documents_searched} docs searched</span>
-              </div>
-              <p style={{ fontSize: 14, color: 'var(--t1)', lineHeight: 1.7 }}>{result.answer}</p>
-            </div>
-
-            {/* Sources */}
-            {result.sources?.length > 0 && (
-              <div>
-                <p className="section-label">Sources</p>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                  {result.sources.map((s, i) => (
-                    <div key={i} className="card" style={{
-                      padding: '12px 16px', display: 'flex', gap: 12, alignItems: 'flex-start',
-                      animation: `fadeUp 0.2s ease ${i * 0.05}s both`,
-                    }}>
-                      <span style={{
-                        fontSize: 11, fontFamily: 'var(--mono)', fontWeight: 600, color: 'var(--blue)',
-                        background: 'var(--blue-dim)', border: '1px solid var(--blue-border)',
-                        borderRadius: 4, padding: '2px 6px', flexShrink: 0, whiteSpace: 'nowrap',
-                      }}>{(s.score * 100).toFixed(0)}%</span>
-                      <div>
-                        <div style={{ fontSize: 11, color: 'var(--t3)', marginBottom: 4 }}>{s.source}</div>
-                        <div style={{ fontSize: 13, color: 'var(--t2)', lineHeight: 1.6 }}>{s.content}</div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
+        {/* Tech stack */}
+        <div className="card fade fade-3">
+          <p className="section-label">Tech Stack</p>
+          <div style={{ display:'flex', flexWrap:'wrap', gap:7 }}>
+            {[
+              ['LlamaIndex','#4f8ef7'],['ChromaDB','#06b6d4'],['OpenAI Embeddings','#10b981'],
+              ['GPT-4o-mini','#8b5cf6'],['FastAPI','#f59e0b'],['Next.js','#f1f5f9'],
+            ].map(([t,c])=>(
+              <span key={t} style={{ fontSize:12.5, fontWeight:600, color:c, background:`${c}12`, border:`1px solid ${c}22`, borderRadius:6, padding:'5px 12px' }}>{t}</span>
+            ))}
           </div>
-        )}
-
-        {/* Pipeline info */}
-        {!result && (
-          <div className="card fade fade-2">
-            <p className="section-label">Pipeline</p>
-            <div style={{ display: 'flex', gap: 8, alignItems: 'center', overflowX: 'auto', paddingBottom: 4 }}>
-              {PIPELINE.map(([step, desc], i, arr) => (
-                <div key={step} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <div style={{ padding: '8px 12px', background: 'var(--bg-2)', border: '1px solid var(--border)', borderRadius: 6, minWidth: 140 }}>
-                    <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--t1)', marginBottom: 2 }}>{step}</div>
-                    <div style={{ fontSize: 11, color: 'var(--t3)' }}>{desc}</div>
-                  </div>
-                  {i < arr.length - 1 && <span style={{ fontSize: 12, color: 'var(--t3)', flexShrink: 0 }}>→</span>}
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
+        </div>
       </div>
     </>
   );
