@@ -190,19 +190,27 @@ function ExtractionSection() {
         placeholder="Describe a hospital in plain English…" />
       <div style={{ display:'flex', gap:8, flexWrap:'wrap', alignItems:'center' }}>
         <button className="btn btn-primary" onClick={()=>run()} disabled={loading||!text.trim()} id="extract-btn">
-          {loading ? <><div className="spinner spinner-sm"/>Extracting…</> : '⚡ Extract'}
+          {loading ? <><div className="spinner spinner-sm"/>Analyzing healthcare data...</> : '⚡ Extract'}
         </button>
         {SAMPLES.map((s,i) => (
           <button key={i} className="btn btn-ghost" style={{ fontSize:12 }} onClick={()=>{setText(s);run(s);}}>Sample {i+1}</button>
         ))}
         {text && <button className="btn btn-ghost" style={{fontSize:12,marginLeft:'auto'}} onClick={()=>{setText('');setResult(null);setError('');}}>Clear</button>}
       </div>
-      {error && <div className="alert alert-err">{error}</div>}
+      {error && (
+        <div className="alert alert-err" style={{ display:'flex', justifyContent:'space-between', alignItems:'center' }}>
+          <span>{error}</span>
+          <button className="btn btn-ghost" style={{ padding:'2px 8px', fontSize:11, color:'inherit', borderColor:'currentColor' }} onClick={()=>run()}>Retry</button>
+        </div>
+      )}
       {result && cfg && (
         <div style={{ display:'flex', flexDirection:'column', gap:12, animation:'fadeUp .3s ease' }}>
           <div style={{ display:'flex', alignItems:'center', gap:12, padding:'14px 18px', background:cfg.bg, border:`1px solid ${cfg.border}`, borderRadius:10 }}>
             <span style={{ width:10,height:10,borderRadius:'50%',background:cfg.color,boxShadow:`0 0 12px ${cfg.color}` }} />
             <span style={{ fontSize:15, fontWeight:700, color:cfg.color }}>{cfg.label}</span>
+            {result.confidence_score && (
+              <span style={{ fontSize:12, color:'var(--t3)', marginLeft:'auto' }}>Confidence: {(result.confidence_score*100).toFixed(0)}%</span>
+            )}
           </div>
           <div className="grid-3" style={{ gap:8 }}>
             {[['Doctors',result.doctors],['Nurses',result.nurses],['Beds',result.beds],['Ambulances',result.ambulances],['Location',result.location||'—'],['Population',result.population_served?.toLocaleString()??'—']].map(([l,v])=>(
@@ -245,7 +253,7 @@ function RAGSection() {
       <div style={{ display:'flex', gap:8 }}>
         <input type="text" value={q} onChange={e=>setQ(e.target.value)} onKeyDown={e=>e.key==='Enter'&&run()} placeholder="Ask about hospital data…" id="rag-input" />
         <button className="btn btn-teal" onClick={()=>run()} disabled={loading||!q.trim()} style={{ flexShrink:0 }}>
-          {loading ? <div className="spinner spinner-sm"/> : '🔮 Search'}
+          {loading ? <><div className="spinner spinner-sm"/>Processing with AI...</> : '🔮 Search'}
         </button>
       </div>
       <div style={{ display:'flex', gap:6, flexWrap:'wrap' }}>
@@ -253,15 +261,23 @@ function RAGSection() {
           <button key={i} className="btn btn-ghost" style={{ fontSize:11.5 }} onClick={()=>{setQ(s);run(s);}}>{s}</button>
         ))}
       </div>
-      {error && <div className="alert alert-err">{error}</div>}
+      {error && (
+        <div className="alert alert-err" style={{ display:'flex', justifyContent:'space-between', alignItems:'center' }}>
+          <span>{error}</span>
+          <button className="btn btn-ghost" style={{ padding:'2px 8px', fontSize:11, color:'inherit', borderColor:'currentColor' }} onClick={()=>run()}>Retry</button>
+        </div>
+      )}
       {result && (
         <div style={{ display:'flex', flexDirection:'column', gap:12, animation:'fadeUp .3s ease' }}>
           <div className="card-grad" style={{ padding:'18px 22px' }}>
             <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:12 }}>
               <span style={{ fontSize:11, fontWeight:700, color:'var(--teal)', textTransform:'uppercase', letterSpacing:'0.08em' }}>AI Answer</span>
               <span style={{ fontSize:11, color:'var(--t3)' }}>· {result.total_documents_searched} docs searched</span>
+              {result.confidence_score && (
+                <span style={{ fontSize:11, color:'var(--t3)' }}>· Confidence: {(result.confidence_score*100).toFixed(0)}%</span>
+              )}
             </div>
-            <p style={{ fontSize:14.5, color:'var(--t1)', lineHeight:1.75 }}>{result.answer}</p>
+            <div style={{ fontSize:14.5, color:'var(--t1)', lineHeight:1.75, whiteSpace:'pre-wrap' }}>{result.answer}</div>
           </div>
           {result.sources?.length > 0 && (
             <div>

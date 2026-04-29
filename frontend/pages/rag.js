@@ -49,7 +49,7 @@ export default function RAGPage() {
 
         {/* Query interface */}
         <div className="card-grad fade fade-2" style={{ marginBottom:20 }}>
-          <p className="section-label">Ask the Knowledge Base</p>
+          <p className="section-label">Ask questions about healthcare gaps</p>
           <RAGSection />
         </div>
 

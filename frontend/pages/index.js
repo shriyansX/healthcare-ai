@@ -129,11 +129,13 @@ function HospitalRow({ h, last }) {
       gridTemplateColumns: '1fr 140px 70px 80px 160px',
       padding: '13px 24px', alignItems: 'center', gap: 12,
       borderBottom: last ? 'none' : '1px solid var(--border)',
+      borderLeft: h.status === 'Medical Desert' ? '3px solid #dc2626' : '3px solid transparent',
+      background: h.status === 'Medical Desert' ? 'rgba(220,38,38,0.04)' : 'transparent',
       transition: 'background 0.15s',
       cursor: 'default',
     }}
-      onMouseEnter={e => e.currentTarget.style.background = 'rgba(79,142,247,0.04)'}
-      onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+      onMouseEnter={e => e.currentTarget.style.background = h.status === 'Medical Desert' ? 'rgba(220,38,38,0.08)' : 'rgba(79,142,247,0.04)'}
+      onMouseLeave={e => e.currentTarget.style.background = h.status === 'Medical Desert' ? 'rgba(220,38,38,0.04)' : 'transparent'}
     >
       <div>
         <div style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--t1)', marginBottom: 2 }}>{h.name}</div>
@@ -179,8 +181,8 @@ export default function Dashboard() {
   return (
     <>
       <Head>
-        <title>Dashboard — HealthcareAI</title>
-        <meta name="description" content="Healthcare AI Analytics — Real-time hospital coverage across India" />
+        <title>MedIntel AI – Healthcare Desert Detection System</title>
+        <meta name="description" content="AI-powered platform to identify underserved healthcare regions" />
       </Head>
 
       <div className="container" style={{ padding: '48px 28px 72px' }}>
@@ -204,22 +206,22 @@ export default function Dashboard() {
 
             <h1 style={{
               fontFamily: 'Space Grotesk, Inter, sans-serif',
-              fontSize: 'clamp(32px, 4vw, 52px)',
+              fontSize: 'clamp(32px, 4vw, 42px)',
               fontWeight: 800,
               letterSpacing: '-0.03em',
               lineHeight: 1.1,
               marginBottom: 16,
               color: '#f1f5f9',
             }}>
-              India's Hospital<br />
+              MedIntel AI –<br />
               <span style={{
                 background: 'linear-gradient(135deg, #4f8ef7 0%, #06b6d4 60%, #6366f1 100%)',
                 WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
-              }}>Coverage Network</span>
+              }}>Healthcare Desert Detection</span>
             </h1>
 
             <p style={{ fontSize: 15.5, color: 'var(--t2)', lineHeight: 1.7, marginBottom: 28, maxWidth: 460 }}>
-              Real-time analytics detecting medical deserts, critical zones, and coverage gaps across {stats.total_hospitals}+ hospitals nationwide.
+              AI-powered platform to identify underserved healthcare regions. Real-time analytics detecting medical deserts and critical zones across {stats.total_hospitals}+ hospitals nationwide.
             </p>
 
             <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
@@ -377,7 +379,7 @@ export default function Dashboard() {
         {/* ── Hospital table ── */}
         <div className="fade fade-4">
           <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:14 }}>
-            <p className="section-label" style={{ marginBottom:0 }}>Hospital Registry</p>
+            <p className="section-label" style={{ marginBottom:0 }}>Healthcare Coverage Overview</p>
             <Link href="/results" style={{ fontSize:13, color:'var(--blue)', fontWeight:500 }}>View all results →</Link>
           </div>
           <div className="card" style={{ padding:0, overflow:'hidden' }}>

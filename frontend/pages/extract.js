@@ -10,7 +10,7 @@ export default function ExtractPage() {
           <div style={{ display:'inline-flex', alignItems:'center', gap:7, background:'rgba(99,102,241,0.08)', border:'1px solid rgba(99,102,241,0.20)', borderRadius:999, padding:'4px 12px', marginBottom:16, fontSize:12, fontWeight:600, color:'#a5b4fc' }}>
             Step 2 of 5 — Extract Structure
           </div>
-          <h1 className="page-title">AI <span className="title-accent">Extraction</span></h1>
+          <h1 className="page-title">AI-Based Hospital Data <span className="title-accent">Extraction</span></h1>
           <p className="page-sub">Convert messy hospital descriptions into structured data using regex patterns + NLP rule engine. Detects doctors, equipment, and status automatically.</p>
         </div>
 
@@ -23,7 +23,7 @@ export default function ExtractPage() {
               <p className="section-label">Detection Rules</p>
               {[
                 { rule:'doctors < 5',       result:'Medical Desert', color:'#ef4444' },
-                { rule:'no ICU',            result:'Critical Zone',  color:'#f59e0b' },
+                { rule:'no ICU',            result:'Critical',       color:'#f59e0b' },
                 { rule:'partial equipment', result:'Medium',         color:'#fbbf24' },
                 { rule:'full kit + staff',  result:'Good',           color:'#10b981' },
               ].map((r,i,arr)=>(

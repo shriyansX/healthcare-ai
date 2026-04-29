@@ -11,10 +11,9 @@ const FILTERS = [
 ];
 
 const LEGEND = [
-  { color:'#10b981', label:'Good',           desc:'15+ doctors, full equipment' },
-  { color:'#f59e0b', label:'Medium',          desc:'Partial coverage gaps' },
-  { color:'#ef4444', label:'Critical',         desc:'Missing ICU / key equipment' },
-  { color:'#dc2626', label:'Medical Desert',   desc:'Fewer than 5 doctors' },
+  { emoji:'🟢', label:'Good',           desc:'15+ doctors, full equipment' },
+  { emoji:'🟡', label:'Critical',       desc:'Missing ICU / key equipment' },
+  { emoji:'🔴', label:'Medical Desert', desc:'Fewer than 5 doctors' },
 ];
 
 export default function MapPage() {
@@ -72,7 +71,7 @@ export default function MapPage() {
             <p className="section-label">Map Legend</p>
             {LEGEND.map(l=>(
               <div key={l.label} style={{ display:'flex', alignItems:'center', gap:12, padding:'9px 0', borderBottom:'1px solid var(--border)' }}>
-                <span style={{ width:12,height:12,borderRadius:'50%',background:l.color,flexShrink:0,boxShadow:`0 0 8px ${l.color}70` }} />
+                <span style={{ fontSize:16, flexShrink:0 }}>{l.emoji}</span>
                 <div>
                   <span style={{ fontSize:13, fontWeight:600, color:'var(--t1)' }}>{l.label}</span>
                   <span style={{ fontSize:12, color:'var(--t3)', marginLeft:8 }}>{l.desc}</span>

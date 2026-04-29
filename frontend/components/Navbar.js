@@ -11,7 +11,7 @@ const NAV = [
   { href: '/map',     label: 'Map' },
 ];
 
-export default function Navbar() {
+export default function Navbar({ isDemoMode }) {
   const { pathname } = useRouter();
   const [scrolled, setScrolled] = useState(false);
   const [apiOk, setApiOk] = useState(null);
@@ -29,6 +29,8 @@ export default function Navbar() {
       .then(data => setApiOk(data.status === 'online'))
       .catch(() => setApiOk(false));
   }, []);
+
+  const showDemo = isDemoMode || apiOk === false;
 
   return (
     <nav style={{
@@ -94,19 +96,19 @@ export default function Navbar() {
       <div style={{
         display: 'flex', alignItems: 'center', gap: 7,
         padding: '5px 12px',
-        background: apiOk === true ? 'rgba(16,185,129,0.08)' : apiOk === false ? 'rgba(239,68,68,0.08)' : 'rgba(255,255,255,0.04)',
-        border: `1px solid ${apiOk === true ? 'rgba(16,185,129,0.20)' : apiOk === false ? 'rgba(239,68,68,0.20)' : 'rgba(255,255,255,0.06)'}`,
+        background: apiOk === true && !isDemoMode ? 'rgba(16,185,129,0.08)' : showDemo ? 'rgba(245,158,11,0.08)' : 'rgba(255,255,255,0.04)',
+        border: `1px solid ${apiOk === true && !isDemoMode ? 'rgba(16,185,129,0.20)' : showDemo ? 'rgba(245,158,11,0.20)' : 'rgba(255,255,255,0.06)'}`,
         borderRadius: 999,
         fontSize: 12, fontWeight: 600,
-        color: apiOk === true ? '#6ee7b7' : apiOk === false ? '#fca5a5' : 'var(--t3)',
+        color: apiOk === true && !isDemoMode ? '#6ee7b7' : showDemo ? '#fcd34d' : 'var(--t3)',
         flexShrink: 0, transition: 'all 0.3s',
       }}>
         <span style={{
           width: 6, height: 6, borderRadius: '50%', display: 'inline-block',
-          background: apiOk === true ? '#10b981' : apiOk === false ? '#ef4444' : '#475569',
-          boxShadow: apiOk === true ? '0 0 8px #10b981' : 'none',
+          background: apiOk === true && !isDemoMode ? '#10b981' : showDemo ? '#f59e0b' : '#475569',
+          boxShadow: apiOk === true && !isDemoMode ? '0 0 8px #10b981' : 'none',
         }} />
-        {apiOk === true ? 'API Key Online' : apiOk === false ? 'API Key Offline' : 'Connecting'}
+        {apiOk === true && !isDemoMode ? 'API Key Online' : showDemo ? 'Smart Demo Mode' : 'Connecting'}
       </div>
     </nav>
   );
