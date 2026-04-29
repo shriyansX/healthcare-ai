@@ -34,7 +34,7 @@ export default function Navbar({ isDemoMode }) {
 
   return (
     <nav style={{
-      position: 'fixed', inset: '0 0 auto 0', zIndex: 100,
+      position: 'fixed', top: isDemoMode ? 30 : 0, left: 0, right: 0, zIndex: 100,
       height: 58,
       background: scrolled ? 'rgba(6,6,15,0.95)' : 'rgba(6,6,15,0.75)',
       backdropFilter: 'blur(20px)',

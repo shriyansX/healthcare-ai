@@ -23,19 +23,19 @@ export default function App({ Component, pageProps }) {
       </Head>
       {isDemoMode && (
         <div style={{
-          position: 'fixed', top: 0, left: 0, right: 0, zIndex: 200,
+          position: 'fixed', top: 0, left: 0, right: 0, zIndex: 200, height: 30,
           background: 'linear-gradient(90deg, #f59e0b, #ef4444)',
-          color: 'white', textAlign: 'center', padding: '6px 16px',
-          fontSize: 13, fontWeight: 700, letterSpacing: '0.02em',
-          boxShadow: '0 4px 12px rgba(239,68,68,0.3)',
+          color: 'white', textAlign: 'center',
+          fontSize: 12.5, fontWeight: 600, letterSpacing: '0.02em',
+          boxShadow: '0 2px 8px rgba(239,68,68,0.2)',
           display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 8
         }}>
-          <span style={{ fontSize: 16 }}>⚡</span>
+          <span style={{ fontSize: 14 }}>⚡</span>
           Smart Demo Mode Enabled – ensuring uninterrupted analysis
         </div>
       )}
       <Navbar isDemoMode={isDemoMode} />
-      <main style={{ paddingTop: isDemoMode ? 90 : 58, minHeight: '100vh', transition: 'padding-top 0.3s' }}>
+      <main style={{ paddingTop: isDemoMode ? 88 : 58, minHeight: '100vh', transition: 'padding-top 0.3s' }}>
         <Component {...pageProps} />
       </main>
     </>
