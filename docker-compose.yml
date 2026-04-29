@@ -9,6 +9,7 @@ services:
       - "8000:8000"
     environment:
       - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - NVIDIA_API_KEY=${NVIDIA_API_KEY}
       - CHROMA_PERSIST_DIR=/data/chroma
     volumes:
       - chroma_data:/data/chroma

@@ -1,5 +1,9 @@
+import os
 from fastapi import APIRouter
 from models import RAGQueryRequest, RAGQueryResult, RAGDocument
+from dotenv import load_dotenv
+
+load_dotenv()
 
 router = APIRouter()
 
@@ -45,100 +49,85 @@ _DEMO_KB = [
         "score": 0.93,
         "keywords": ["apollo", "chennai", "dialysis", "nicu", "ventilator", "blood bank"],
     },
-    {
-        "source": "jharkhand_phc.txt",
-        "content": "Rural PHC Jharkhand: 6 doctors, no ICU. Status Critical. Missing key equipment. "
-                   "Serves remote tribal population.",
-        "score": 0.82,
-        "keywords": ["jharkhand", "critical", "tribal", "rural", "no icu"],
-    },
-    {
-        "source": "kem_mumbai.txt",
-        "content": "KEM Hospital Mumbai: 180 doctors, ICU, MRI, CT scan. Status: Good. "
-                   "Major public hospital serving central Mumbai.",
-        "score": 0.88,
-        "keywords": ["kem", "mumbai", "180 doctors", "good", "public hospital"],
-    },
 ]
-
 
 def _search(query: str, top_k: int) -> list[dict]:
     """Simple keyword-based similarity search over demo KB."""
     q_lower = query.lower()
     scored = []
     for doc in _DEMO_KB:
-        # Count keyword hits
         hits = sum(1 for kw in doc["keywords"] if kw in q_lower)
-        # Also partial match on content
         content_hits = sum(1 for word in q_lower.split() if len(word) > 3 and word in doc["content"].lower())
         total_score = doc["score"] + hits * 0.04 + content_hits * 0.02
         scored.append({**doc, "score": min(total_score, 0.99)})
-
     scored.sort(key=lambda x: x["score"], reverse=True)
     return scored[:top_k]
 
+def _generate_answer_with_llm(query: str, context: str) -> str:
+    """Generate answer using LLM."""
+    api_key = os.getenv("NVIDIA_API_KEY") or os.getenv("OPENAI_API_KEY") or "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"
+    base_url = "https://integrate.api.nvidia.com/v1" if (os.getenv("NVIDIA_API_KEY") or api_key.startswith("nvapi")) else None
+    model_name = "meta/llama3-70b-instruct" if (os.getenv("NVIDIA_API_KEY") or api_key.startswith("nvapi")) else (os.getenv("LLM_MODEL") or "gpt-3.5-turbo")
+    
+    if not api_key or api_key.startswith("your_"):
+        return None
+        
+    try:
+        from openai import OpenAI
+        client = OpenAI(api_key=api_key, base_url=base_url)
+        prompt = f"Answer the user's query based on the following context. If the answer isn't in the context, say so.\nContext: {context}\nQuery: {query}"
+        response = client.chat.completions.create(
+            model=model_name,
+            messages=[{"role": "user", "content": prompt}],
+            temperature=0.3,
+            max_tokens=256
+        )
+        return response.choices[0].message.content.strip()
+    except Exception as e:
+        print(f"LLM Generation failed: {e}")
+        return None
 
-def _generate_answer(query: str, sources: list[dict]) -> str:
-    """Generate a contextual answer from retrieved sources."""
+def _generate_answer_fallback(query: str, sources: list[dict]) -> str:
+    """Generate a contextual answer statically."""
     q = query.lower()
-
-    # Medical desert query
     if any(w in q for w in ["desert", "underserved", "shortage", "lack"]):
         deserts = [s for s in sources if "desert" in s["content"].lower()]
         if deserts:
             names = [s["source"].replace(".txt", "").replace(".pdf", "").replace(".csv", "").replace("_", " ").title() for s in deserts]
-            return (
-                f"Based on the indexed documents, the following locations qualify as Medical Deserts "
-                f"(fewer than 5 doctors or missing critical equipment): {', '.join(names[:3])}. "
-                "These areas urgently need additional healthcare resources, especially ICU facilities, "
-                "more doctors, and emergency ambulance services."
-            )
-
-    # Equipment query
-    if any(w in q for w in ["equipment", "mri", "icu", "ventilator", "ct", "nicu", "x-ray"]):
-        context = " ".join(s["content"] for s in sources[:2])
-        return (
-            f"According to the healthcare database: {context[:400]}... "
-            "Equipment availability is a key determinant of healthcare status classification."
-        )
-
-    # Doctor count query
-    if any(w in q for w in ["doctor", "physician", "staff", "nurse"]):
-        context = sources[0]["content"] if sources else "No data found."
-        return (
-            f"Healthcare staffing data from the vector store: {context[:350]}. "
-            "The WHO recommends a minimum ratio of 1 doctor per 1,000 population for adequate coverage."
-        )
-
-    # Specific hospital query
-    for source in sources:
-        if source["score"] > 0.90:
-            return (
-                f"From the knowledge base ({source['source']}): {source['content']} "
-                "This information was retrieved via semantic similarity search across all indexed documents."
-            )
-
-    # General fallback
+            return f"Based on the indexed documents, the following locations qualify as Medical Deserts: {', '.join(names[:3])}. These areas urgently need additional healthcare resources."
     if sources:
         combined = " | ".join(s["content"][:120] for s in sources[:2])
-        return (
-            f"Based on {len(sources)} retrieved document chunks: {combined}. "
-            "For more precise answers, ensure all hospital documents have been uploaded and indexed."
-        )
+        return f"Based on {len(sources)} retrieved document chunks: {combined}."
+    return "No relevant documents found for this query."
 
-    return (
-        "No relevant documents found for this query. "
-        "Please upload hospital documents using the Upload page first."
-    )
+def _generate_answer(query: str, sources: list[dict]) -> str:
+    """Generate a contextual answer from retrieved sources."""
+    context = "\n".join([f"Source ({s['source']}): {s['content']}" for s in sources])
+    llm_answer = _generate_answer_with_llm(query, context)
+    if llm_answer:
+        return llm_answer
+    return _generate_answer_fallback(query, sources)
+
+
+@router.get("/status")
+def get_ai_status():
+    """Check if the AI API is configured."""
+    nvidia_key = os.getenv("NVIDIA_API_KEY") or "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"
+    openai_key = os.getenv("OPENAI_API_KEY")
+    
+    # Check if a valid-looking key exists (not starting with 'your_')
+    has_nvidia = nvidia_key and not nvidia_key.startswith("your_")
+    has_openai = openai_key and not openai_key.startswith("your_")
+    
+    if has_nvidia or has_openai:
+        return {"status": "online", "provider": "Nvidia NIM" if has_nvidia else "OpenAI"}
+    
+    return {"status": "offline", "provider": "none"}
 
 
 @router.post("/query", response_model=RAGQueryResult)
 def query_rag(request: RAGQueryRequest):
-    """
-    Query the RAG pipeline.
-    In production, this calls rag/query.py which uses LlamaIndex + ChromaDB.
-    Falls back to a smart demo KB when RAG deps not installed.
-    """
+    """Query the RAG pipeline."""
     try:
         import sys
         import os

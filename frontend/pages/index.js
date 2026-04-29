@@ -164,6 +164,11 @@ export default function Dashboard() {
   const [hospitals, setHospitals] = useState(FALLBACK);
   const [stats, setStats]         = useState(FALLBACK_STATS);
   const [live, setLive]           = useState(null);
+  const [currentTime, setCurrentTime] = useState('');
+
+  useEffect(() => {
+    setCurrentTime(new Date().toLocaleTimeString());
+  }, []);
 
   useEffect(() => {
     Promise.all([api.getHospitals(), api.getStats()])
@@ -308,7 +313,7 @@ export default function Dashboard() {
           <div className="card" style={{ padding: 0 }}>
             <div style={{ padding: '16px 22px 12px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <span style={{ fontWeight: 700, fontSize: 14, color: 'var(--t1)', fontFamily: 'Space Grotesk, Inter, sans-serif' }}>Active Alerts</span>
-              <span style={{ fontSize: 11, color: 'var(--t3)' }}>{new Date().toLocaleTimeString()}</span>
+              <span style={{ fontSize: 11, color: 'var(--t3)' }}>{currentTime}</span>
             </div>
             {[
               { type:'err',  label:'Medical Desert',  msg:'Barmer PHC — 2 doctors for 12,000 people',    time:'2m' },

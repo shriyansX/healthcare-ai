@@ -24,8 +24,9 @@ export default function Navbar() {
 
   useEffect(() => {
     const base = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
-    fetch(`${base}/health`, { signal: AbortSignal.timeout(3000) })
-      .then(r => setApiOk(r.ok))
+    fetch(`${base}/api/rag/status`, { signal: AbortSignal.timeout(3000) })
+      .then(r => r.json())
+      .then(data => setApiOk(data.status === 'online'))
       .catch(() => setApiOk(false));
   }, []);
 
@@ -105,7 +106,7 @@ export default function Navbar() {
           background: apiOk === true ? '#10b981' : apiOk === false ? '#ef4444' : '#475569',
           boxShadow: apiOk === true ? '0 0 8px #10b981' : 'none',
         }} />
-        {apiOk === true ? 'API Live' : apiOk === false ? 'API Offline' : 'Connecting'}
+        {apiOk === true ? 'API Key Online' : apiOk === false ? 'API Key Offline' : 'Connecting'}
       </div>
     </nav>
   );
