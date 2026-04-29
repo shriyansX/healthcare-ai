@@ -25,8 +25,7 @@ const STATUS_COLOR = {
 // Only render Leaflet map on client side (no SSR)
 const LeafletMap = dynamic(() => import('./LeafletMapInner'), { ssr: false });
 
-export default function MapView({ filter = 'all', hospitals = [] }) {
-  const data = hospitals.length > 0 ? hospitals : HOSPITALS;
-  const filtered = filter === 'all' ? data : data.filter(h => h.status === filter);
-  return <LeafletMap hospitals={filtered} />;
+export default function MapView({ filter = 'all' }) {
+  const hospitals = filter === 'all' ? HOSPITALS : HOSPITALS.filter(h => h.status === filter);
+  return <LeafletMap hospitals={hospitals} />;
 }

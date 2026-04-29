@@ -27,7 +27,7 @@ export default function ExtractionForm() {
       const data = await api.extract(t);
       setResult(data);
     } catch (e) {
-      setError('Analyzing offline — unable to connect to server.');
+      setError(e.message);
     } finally {
       setLoading(false);
     }
@@ -60,7 +60,7 @@ export default function ExtractionForm() {
           id="extract-btn"
         >
           {loading ? (
-            <><div className="spinner spinner-sm" /> Analyzing healthcare data…</>
+            <><div className="spinner spinner-sm" /> Extracting…</>
           ) : (
             <>🤖 Extract with AI</>
           )}
@@ -101,6 +101,9 @@ export default function ExtractionForm() {
           <span style={{ flexShrink: 0 }}>⚠️</span>
           <div>
             <strong>Extraction failed:</strong> {error}
+            <div style={{ fontSize: '0.78rem', marginTop: '0.25rem', opacity: 0.7 }}>
+              Make sure the backend is running at {process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}
+            </div>
           </div>
         </div>
       )}

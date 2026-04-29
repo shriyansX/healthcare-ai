@@ -23,7 +23,7 @@ export default function Navbar({ isDemoMode }) {
   }, []);
 
   useEffect(() => {
-    const base = process.env.NEXT_PUBLIC_API_URL || '';
+    const base = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
     fetch(`${base}/api/rag/status`, { signal: AbortSignal.timeout(3000) })
       .then(r => r.json())
       .then(data => setApiOk(data.status === 'online'))
@@ -108,7 +108,7 @@ export default function Navbar({ isDemoMode }) {
           background: apiOk === true && !isDemoMode ? '#10b981' : showDemo ? '#f59e0b' : '#475569',
           boxShadow: apiOk === true && !isDemoMode ? '0 0 8px #10b981' : 'none',
         }} />
-        {apiOk === true && !isDemoMode ? '● Live' : showDemo ? '● Demo Mode' : '● Connecting'}
+        {apiOk === true && !isDemoMode ? 'API Key Online' : showDemo ? 'Smart Demo Mode' : 'Connecting'}
       </div>
     </nav>
   );
