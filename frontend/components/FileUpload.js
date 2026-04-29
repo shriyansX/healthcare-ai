@@ -1,6 +1,5 @@
 import { useState, useRef, useCallback } from 'react';
-
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+import { api } from '../lib/api';
 
 function humanSize(b) {
   if (b < 1024) return `${b} B`;
@@ -17,11 +16,7 @@ export default function FileUpload({ onFilesAdded }) {
     const id = Math.random().toString(36).slice(2);
     setQueue(p => [...p, { id, name: file.name, size: file.size, status: 'uploading', result: null, error: null }]);
     try {
-      const form = new FormData();
-      form.append('file', file);
-      const res = await fetch(`${API_BASE}/api/upload/`, { method: 'POST', body: form });
-      if (!res.ok) { const t = await res.text(); throw new Error(t); }
-      const data = await res.json();
+      const data = await api.uploadDocument(file);
       setQueue(p => p.map(e => e.id === id ? { ...e, status: 'done', result: data } : e));
       onFilesAdded?.([{ name: data.name, size: data.size_human, chunks: data.chunks, status: data.status, id: data.id, type: data.type }]);
     } catch (err) {

@@ -1,6 +1,7 @@
 import Head from 'next/head';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import MapView from '../components/MapView';
+import { api } from '../lib/api';
 
 const FILTERS = [
   { label:'All',            value:'all',            color:'#4f8ef7' },
@@ -18,6 +19,11 @@ const LEGEND = [
 
 export default function MapPage() {
   const [filter, setFilter] = useState('all');
+  const [hospitals, setHospitals] = useState([]);
+
+  useEffect(() => {
+    api.getHospitals().then(setHospitals).catch(() => {});
+  }, []);
 
   return (
     <>
@@ -62,7 +68,7 @@ export default function MapPage() {
             </div>
             <span style={{ fontSize:11.5, color:'var(--t3)', fontFamily:'var(--mono)' }}>India · {filter === 'all' ? 'All hospitals' : filter}</span>
           </div>
-          <MapView filter={filter} />
+          <MapView filter={filter} hospitals={hospitals} />
         </div>
 
         {/* Legend + tips */}

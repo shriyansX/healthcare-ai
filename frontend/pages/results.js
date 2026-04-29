@@ -24,6 +24,7 @@ const STATUS_SUMMARY = [
 
 export default function ResultsPage() {
   const [hospitals, setHospitals] = useState(FALLBACK);
+  const [stats, setStats]         = useState(null);
   const [loading, setLoading]     = useState(true);
   const [filter, setFilter]       = useState('All');
   const [sort, setSort]           = useState('status');
@@ -31,6 +32,7 @@ export default function ResultsPage() {
 
   useEffect(() => {
     api.getHospitals().then(setHospitals).catch(()=>{}).finally(()=>setLoading(false));
+    api.getStats().then(setStats).catch(()=>{});
   }, []);
 
   let list = hospitals;
@@ -40,7 +42,13 @@ export default function ResultsPage() {
   if (sort === 'doctors')list = [...list].sort((a,b) => b.doctors-a.doctors);
   if (sort === 'score')  list = [...list].sort((a,b) => (b.score||0)-(a.score||0));
 
-  const counts = { All:hospitals.length, ...Object.fromEntries(STATUS_SUMMARY.map(s=>[s.status, hospitals.filter(h=>h.status===s.status).length])) };
+  const counts = stats ? {
+    All: stats.total_hospitals,
+    'Medical Desert': stats.medical_deserts,
+    Critical: stats.critical_zones,
+    Medium: stats.medium,
+    Good: stats.good
+  } : { All:hospitals.length, ...Object.fromEntries(STATUS_SUMMARY.map(s=>[s.status, hospitals.filter(h=>h.status===s.status).length])) };
 
   return (
     <>

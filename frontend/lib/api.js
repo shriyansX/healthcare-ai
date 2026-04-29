@@ -1,7 +1,7 @@
 const API_BASE =
   (typeof window !== 'undefined'
     ? process.env.NEXT_PUBLIC_API_URL
-    : process.env.NEXT_PUBLIC_API_URL) || 'http://localhost:8000';
+    : process.env.NEXT_PUBLIC_API_URL) || '';
 
 const FALLBACK_HOSPITALS = [
   { id:1, name:'AIIMS Delhi', location:'Delhi', doctors:320, beds:1000, ambulances:12, population_served:500000, equipment:['MRI','CT scan','ICU','Ventilator','NICU','Blood Bank','Lab'], status:'Good', score:92 },
@@ -147,7 +147,14 @@ export const api = {
     } catch(err) {
       triggerDemoMode();
       await new Promise(r => setTimeout(r, 1000));
-      return { message: 'Demo mode: upload simulated successfully', chunks: 5 };
+      return { 
+        id: Math.random().toString(36).slice(2),
+        name: file.name, 
+        size_human: '1.2 MB', 
+        chunks: Math.floor(Math.random() * 40) + 10, 
+        status: 'Embedded', 
+        type: file.name.split('.').pop() 
+      };
     }
   },
 };
