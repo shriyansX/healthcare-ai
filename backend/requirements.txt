@@ -1,0 +1,16 @@
+fastapi==0.111.0
+uvicorn[standard]==0.29.0
+pydantic==2.7.1
+python-multipart==0.0.9
+python-dotenv==1.0.1
+httpx==0.27.0
+
+# RAG / AI
+llama-index==0.10.38
+llama-index-vector-stores-chroma==0.1.9
+chromadb==0.5.0
+openai==1.30.1
+sentence-transformers==2.7.0
+
+# Optional: if using spaCy for NER-based extraction
+# spacy==3.7.4
